@@ -1,30 +1,68 @@
 import streamlit as st
 import json
 import os
+import pandas as pd
 
-st.set_page_config(page_title="Job Hunt Dashboard", layout="wide")
-st.title("💼 Job Application Tracker Dashboard")
+# Page Config
+st.set_page_config(page_title="Job Hunt Tracker", layout="wide")
 
-# Load data
-if os.path.exists("applications.json"):
-    with open("applications.json", "r") as f:
-        data = json.load(f)
+# Title
+st.title("🚀 Job Application Dashboard")
+
+# 1. Load Data
+file_path = "applications.json"
+data = []
+
+if os.path.exists(file_path):
+    with open(file_path, "r") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            st.error("Error reading applications.json. File might be empty or corrupted.")
 else:
-    data = []
+    st.warning("applications.json not found. Waiting for the first email sync...")
 
-# Metrics
-total_apps = len(data)
-interviews = sum(1 for x in data if x.get("status") == "Interview")
-rejections = sum(1 for x in data if x.get("status") == "Rejected")
-
-col1, col2, col3 = st.columns(3)
-col1.metric("Total Applications", total_apps)
-col2.metric("Interviews Scheduled", interviews)
-col3.metric("Rejections", rejections)
-
-# Table display
-st.subheader("All Application Logs")
+# 2. Display Metrics
 if data:
-    st.dataframe(data, use_container_width=True)
+    # Convert to DataFrame for easier manipulation
+    df = pd.DataFrame(data)
+    
+    # metrics
+    total_apps = len(df)
+    
+    # flexible status checking (case insensitive)
+    if "status" in df.columns:
+        interviews = df[df['status'].str.contains("Interview", case=False, na=False)].shape[0]
+        offers = df[df['status'].str.contains("Offer", case=False, na=False)].shape[0]
+        rejections = df[df['status'].str.contains("Reject", case=False, na=False)].shape[0]
+    else:
+        interviews = 0
+        offers = 0
+        rejections = 0
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Applications", total_apps)
+    col2.metric("Interviews", interviews)
+    col3.metric("Offers", offers)
+    col4.metric("Rejections", rejections)
+
+    # 3. Data Table
+    st.subheader("Application History")
+    
+    # Search filter
+    search = st.text_input("Search Company or Status", "")
+    if search:
+        df = df[df.apply(lambda row: row.astype(str).str.contains(search, case=False).any(), axis=1)]
+
+    st.dataframe(
+        df, 
+        use_container_width=True,
+        column_config={
+            "company": "Company",
+            "status": "Status",
+            "date": "Date Applied",
+            "subject": "Email Subject"
+        }
+    )
 else:
-    st.info("No applications found yet. Wait for the email sync to run!")
+    st.info("No applications tracked yet. Your email bot is watching! 👀")
