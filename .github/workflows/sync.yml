@@ -1,0 +1,32 @@
+name: Job Application Sync Service
+
+on:
+  repository_dispatch:
+    types: [email_sync_event]
+
+jobs:
+  update-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository Base
+        uses: actions/checkout@v4
+
+      - name: Set Up Python Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Execute Append Optimization Script
+        run: |
+          python sync_application.py \
+            "${{ github.event.client_payload.company }}" \
+            "${{ github.event.client_payload.role }}" \
+            "${{ github.event.client_payload.status }}"
+
+      - name: Commit and Push Update to Main Branch
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@://github.com"
+          git add applications.json
+          git commit -m "auto-sync: Added entry for ${{ github.event.client_payload.company }} [skip ci]" || exit 0
+          git push
