@@ -1,0 +1,5 @@
+    - name: Run Email Sync Script
+      env:
+        EMAIL_USER: ${{ secrets.EMAIL_USER }}
+        EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      run: python sync_email_actions.py
