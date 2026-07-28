@@ -1,5 +1,36 @@
-    - name: Run Email Sync Script
-      env:
-        EMAIL_USER: ${{ secrets.EMAIL_USER }}
-        EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-      run: python sync_email_actions.py
+name: Job Hunt Sync
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch:      # Allows manual trigger button
+
+jobs:
+  sync_jobs:
+    runs-on: ubuntu-latest
+    permissions:          # CRITICAL: Grants permission to write to the repo
+      contents: write
+      
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Run Email Sync Script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+        run: python sync_email_actions.py
+
+      # --- THIS IS LIKELY THE MISSING STEP ---
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add applications.json
+          # Only commit if the file has changed
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update applications.json" && git push)
