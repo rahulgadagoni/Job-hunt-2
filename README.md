@@ -65,6 +65,9 @@ export GCP_PROJECT="your-project-id"
 export GCP_REGION="us-central1"
 export SERVICE_NAME="job-hunt-sync"
 export IMAGE_TAG="latest"
+export DATABASE_URL_SECRET_NAME="DATABASE_URL"
 
 bash scripts/deploy_cloud_run.sh
 ```
+
+The dashboard expects `DATABASE_URL` to be available at runtime. The deploy script mounts it from Google Secret Manager using the secret named by `DATABASE_URL_SECRET_NAME`.

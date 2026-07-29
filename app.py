@@ -11,6 +11,14 @@ st.set_page_config(page_title="Job Hunt Tracker", layout="wide")
 # Title
 st.title("🚀 Job Application Dashboard")
 
+
+def get_database_url() -> str | None:
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        return database_url
+
+    return st.secrets.get("DATABASE_URL")
+
 @st.cache_data(ttl=60)
 def load_applications(database_url: str) -> pd.DataFrame:
     query = """
@@ -27,7 +35,7 @@ def load_applications(database_url: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-database_url = os.getenv("DATABASE_URL")
+database_url = get_database_url()
 if not database_url:
     st.warning("DATABASE_URL is not set. Configure the database connection to load applications.")
     data = pd.DataFrame()

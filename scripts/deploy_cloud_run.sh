@@ -4,6 +4,7 @@ set -euo pipefail
 : "${GCP_PROJECT:?Set GCP_PROJECT}"
 : "${GCP_REGION:?Set GCP_REGION}"
 : "${SERVICE_NAME:?Set SERVICE_NAME}"
+: "${DATABASE_URL_SECRET_NAME:=DATABASE_URL}"
 
 IMAGE="gcr.io/${GCP_PROJECT}/${SERVICE_NAME}:${IMAGE_TAG:-latest}"
 
@@ -18,4 +19,5 @@ gcloud run deploy "$SERVICE_NAME" \
   --region "$GCP_REGION" \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "SYNC_MODE=email-metadata"
+  --set-env-vars "SYNC_MODE=email-metadata" \
+  --set-secrets "DATABASE_URL=${DATABASE_URL_SECRET_NAME}:latest"
