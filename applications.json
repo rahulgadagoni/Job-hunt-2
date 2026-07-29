@@ -1,1 +1,9 @@
-[]
+[
+    {
+        "company": "Example Tech",
+        "status": "Applied",
+        "date": "Tue, 28 Jul 2026 10:00:00",
+        "subject": "Thank you for applying to Example Tech",
+        "sender": "jobs@example.com"
+    }
+]
