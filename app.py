@@ -13,14 +13,26 @@ st.title("🚀 Job Application Dashboard")
 file_path = "applications.json"
 data = []
 
-if os.path.exists(file_path):
-    with open(file_path, "r") as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError:
-            st.error("Error reading applications.json. File might be empty or corrupted.")
-else:
-    st.warning("applications.json not found. Waiting for the first email sync...")
+
+def load_applications(path: str) -> list[dict]:
+    if not os.path.exists(path):
+        st.warning("applications.json not found. Waiting for the first email sync...")
+        return []
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            loaded = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        st.error("applications.json is not valid JSON. Resetting to an empty list.")
+        return []
+
+    if isinstance(loaded, list):
+        return loaded
+
+    st.error("applications.json must contain a JSON array of applications.")
+    return []
+
+data = load_applications(file_path)
 
 # 2. Display Metrics
 if data:
