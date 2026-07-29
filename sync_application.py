@@ -1,50 +1,42 @@
+import hashlib
 import os
-import json
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
-def update_json_tracker(company, role, status):
-    file_path = "applications.json"
-    
-    # 1. Load existing tracking data securely
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            try:
-                data = json.load(f)
-            except json.JSONDecodeError:
-                data = []
-    else:
-        data = []
+import psycopg
 
-    # Clean inputs to prevent trailing whitespaces or formatting issues
+def build_message_id(company, role, status):
+    normalized = "|".join(part.strip().lower() for part in (company, role, status))
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"manual:{digest}"
+
+
+def upsert_application(company, role, status):
     company = company.strip()
     role = role.strip()
     status = status.strip()
+    message_id = build_message_id(company, role, status)
+    received_at = datetime.now(timezone.utc)
 
-    # 2. Build the structural application item
-    new_entry = {
-        "id": len(data) + 1,
-        "company": company,
-        "role": role,
-        "status": status,
-        "date_logged": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
+    dsn = os.environ["DATABASE_URL"]
+    with psycopg.connect(dsn) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO job_applications (message_id, sender, subject, received_at, source)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (message_id) DO UPDATE
+                SET sender = EXCLUDED.sender,
+                    subject = EXCLUDED.subject,
+                    received_at = EXCLUDED.received_at,
+                    source = EXCLUDED.source,
+                    updated_at = NOW();
+                """,
+                (message_id, company, role, received_at, status),
+            )
+        conn.commit()
 
-    # 3. Look for explicit duplicates to prevent messy sync overlaps
-    is_duplicate = any(
-        item["company"].lower() == company.lower() and 
-        item["role"].lower() == role.lower() and
-        item["status"].lower() == status.lower()
-        for item in data
-    )
-
-    if not is_duplicate:
-        data.append(new_entry)
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
-        print(f"[SUCCESS] Successfully appended record: {role} at {company}")
-    else:
-        print(f"[INFO] Duplicate record detected for {company} ({role}). Skipping rewrite.")
+    print(f"[SUCCESS] Successfully upserted record: {role} at {company}")
 
 if __name__ == "__main__":
     # Ensure all required inputs are forwarded from the runner execution context
@@ -56,4 +48,4 @@ if __name__ == "__main__":
     input_role = sys.argv[2]
     input_status = sys.argv[3]
     
-    update_json_tracker(input_company, input_role, input_status)
+    upsert_application(input_company, input_role, input_status)

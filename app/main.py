@@ -3,6 +3,8 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI
 
+from scripts.email_metadata_tracker import run_sync
+
 app = FastAPI(title="Job Hunt Sync Server", version="1.0.0")
 
 
@@ -13,10 +15,10 @@ def health() -> dict[str, str]:
 
 @app.post("/sync")
 def sync() -> dict[str, str | int]:
-    # Cloud Run friendly endpoint for triggering sync jobs.
     sync_mode = os.getenv("SYNC_MODE", "email-metadata")
+    result = run_sync()
     return {
-        "status": "accepted",
+        "status": result["status"],
+        "processed": result["processed"],
         "mode": sync_mode,
-        "message": "Invoke scripts/email_metadata_tracker.py from scheduler/worker to run full sync.",
     }

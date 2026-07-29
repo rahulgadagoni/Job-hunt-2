@@ -92,11 +92,11 @@ def record_sync_run(processed_count: int, status: str) -> None:
         conn.commit()
 
 
-def run_sync() -> int:
+def run_sync() -> dict[str, int | str]:
     records = fetch_email_metadata()
     processed = persist_records(records)
     record_sync_run(processed, "success")
-    return processed
+    return {"processed": processed, "status": "success"}
 
 
 def main() -> None:
@@ -106,16 +106,16 @@ def main() -> None:
     args = parser.parse_args()
 
     if not args.loop:
-        processed = run_sync()
-        print(f"Processed {processed} email metadata records")
+        result = run_sync()
+        print(f"Processed {result['processed']} email metadata records")
         return
 
     import time
 
     while True:
         try:
-            processed = run_sync()
-            print(f"[{datetime.now(timezone.utc).isoformat()}] Processed {processed} records")
+            result = run_sync()
+            print(f"[{datetime.now(timezone.utc).isoformat()}] Processed {result['processed']} records")
         except Exception as exc:
             print(f"[{datetime.now(timezone.utc).isoformat()}] Sync failed: {exc}")
             try:
