@@ -4,6 +4,7 @@ import pandas as pd
 import psycopg
 from psycopg.rows import dict_row
 import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 
 # Page Config
 st.set_page_config(page_title="Job Hunt Tracker", layout="wide")
@@ -17,7 +18,10 @@ def get_database_url() -> str | None:
     if database_url:
         return database_url
 
-    return st.secrets.get("DATABASE_URL")
+    try:
+        return st.secrets.get("DATABASE_URL")
+    except (StreamlitSecretNotFoundError, KeyError):
+        return None
 
 @st.cache_data(ttl=60)
 def load_applications(database_url: str) -> pd.DataFrame:
