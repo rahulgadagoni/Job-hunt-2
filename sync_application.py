@@ -22,18 +22,13 @@ def upsert_application(company, role, status):
     with psycopg.connect(dsn) as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO job_applications (message_id, sender, subject, received_at, source)
-                VALUES (%s, %s, %s, %s, %s)
-                ON CONFLICT (message_id) DO UPDATE
-                SET sender = EXCLUDED.sender,
-                    subject = EXCLUDED.subject,
-                    received_at = EXCLUDED.received_at,
-                    source = EXCLUDED.source,
-                    updated_at = NOW();
-                """,
-                (message_id, company, role, received_at, status),
-            )
+    """
+    INSERT INTO job_applications (message_id, sender, subject, received_at, source)
+    VALUES (%s, %s, %s, %s, %s)
+    ...
+    """,
+    (message_id, company, role, received_at, status),
+)
         conn.commit()
 
     print(f"[SUCCESS] Successfully upserted record: {role} at {company}")
